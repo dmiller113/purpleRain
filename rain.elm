@@ -19,7 +19,7 @@ main =
 
 -- Models
 init: (Model, Cmd Msg)
-init = ( { x = 10, y = 10, length = 5, velocity = { x = 0, y = 1} }, Cmd.none)
+init = ( { x = 10, y = 10, length = 5, velocity = { x = 0, y = 6} }, Cmd.none)
 
 type alias Model = Drop
 
@@ -50,18 +50,30 @@ type Msg = Reset
 
 update: Msg -> Model -> (Model, Cmd Msg)
 update msg model =
-  (model, Cmd.none)
+  case msg of
+    Reset ->
+      init
+    Tick newTime ->
+      ( { x = (model.x + model.velocity.x), y = (model.y + model.velocity.y), length = model.length, velocity = model.velocity }, Cmd.none)
 
 
 -- View
 view: Model -> Html Msg
 view model =
-  div [] [
-    svg [ width "400", height "400", viewBox "0 0 400 400" ]
-      [ rect [x "10", y "10", width "400", height "400", fill backgroundColor] []
-      , line [x1 "10", y1 "10", x2 "20", y2 "20", stroke purpleColor, strokeWidth "3" ] []
-      ]
-  ]
+  let
+    convertCoord n =
+      let
+        offset =
+          10
+      in
+        (toString(offset + n))
+  in
+    div [] [
+      svg [ width "400", height "400", viewBox "0 0 400 400" ]
+        [ rect [x (convertCoord 10), y (convertCoord 10), width "400", height "400", fill backgroundColor] []
+        , line [x1 (convertCoord model.x), y1 (convertCoord model.y), x2 (convertCoord (model.x + (model.length * model.velocity.x))), y2 (convertCoord (model.y + (model.length * model.velocity.y))), stroke purpleColor, strokeWidth "3" ] []
+        ]
+    ]
 
 -- Subscriptions
 subscriptions: Model -> Sub Msg
