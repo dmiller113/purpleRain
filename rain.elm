@@ -19,7 +19,7 @@ main =
 
 -- Models
 init: (Model, Cmd Msg)
-init = ( [{ x = 10, y = 10, length = 5, velocity = { x = 0, y = 6} }], Cmd.none)
+init = ( [], Cmd.none)
 
 type alias Model = List Drop
 
