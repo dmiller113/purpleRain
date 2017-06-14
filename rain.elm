@@ -1,6 +1,6 @@
 import Html exposing (Html, div, text)
 import Time exposing (Time, millisecond)
-import Svg exposing (svg, rect, circle)
+import Svg exposing (svg, rect, line)
 import Svg.Attributes exposing (..)
 import Random
 import Basics exposing (floor)
@@ -35,6 +35,15 @@ type alias Drop =
   , velocity: Velocity
   }
 
+type alias Color = String
+
+purpleColor: Color
+purpleColor = "#ad6ffb"
+
+backgroundColor: Color
+backgroundColor = "#f7f7f7"
+
+
 -- Updates
 type Msg = Reset
   | Tick Time
@@ -47,7 +56,12 @@ update msg model =
 -- View
 view: Model -> Html Msg
 view model =
-  div [] []
+  div [] [
+    svg [ width "400", height "400", viewBox "0 0 400 400" ]
+      [ rect [x "10", y "10", width "400", height "400", fill backgroundColor] []
+      , line [x1 "10", y1 "10", x2 "20", y2 "20", stroke purpleColor, strokeWidth "3" ] []
+      ]
+  ]
 
 -- Subscriptions
 subscriptions: Model -> Sub Msg
