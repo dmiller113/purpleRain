@@ -19,13 +19,18 @@ main =
 
 -- Models
 init: (Model, Cmd Msg)
-init = ( { x = 10, y = 10, length = 5, velocity = { x = 0, y = 6} }, Cmd.none)
+init = ( [{ x = 10, y = 10, length = 5, velocity = { x = 0, y = 6} }], Cmd.none)
 
-type alias Model = Drop
+type alias Model = List Drop
 
 type alias Velocity =
   { x: Int
   , y: Int
+  }
+
+type alias Box =
+  { width: Int
+  , height: Int
   }
 
 type alias Drop =
@@ -43,10 +48,70 @@ purpleColor = "#ad6ffb"
 backgroundColor: Color
 backgroundColor = "#f7f7f7"
 
+svgSize: Box
+svgSize =
+  { width = 400
+  , height = 400
+  }
+
+randomPosition : Random.Generator { x: Int, y: Int }
+randomPosition =
+  Random.map2 (\x y -> { x = x, y = y }) (Random.int 0 400) (Random.int -40 -20)
+
+randomVelocity : Random.Generator Velocity
+randomVelocity =
+  Random.map2 Velocity (Random.int 1 2) (Random.int 6 12)
+
+randomDrop : Random.Generator Drop
+randomDrop =
+  Random.map3 (\pos len velocity -> { x = pos.x, y = pos.y, length = len, velocity = velocity }) (randomPosition) (Random.int 5 10) (randomVelocity)
+
 
 -- Updates
 type Msg = Reset
   | Tick Time
+  | GenerateDrop Drop
+
+
+generateDropMessage : Int -> Cmd Msg
+generateDropMessage length =
+  if length < 100 then
+    Random.generate GenerateDrop randomDrop
+  else
+    Cmd.none
+
+
+numberOrReset: Int -> Int -> Int -> Int
+numberOrReset constraint resetTo number =
+  if number <= constraint then
+    number
+  else
+    resetTo
+
+resetToBeforeView: Int -> Int
+resetToBeforeView number =
+  numberOrReset svgSize.height -100 number
+
+
+addVelocity: Drop -> (Int, Int)
+addVelocity raindrop =
+  let
+    newX =
+      resetToBeforeView(raindrop.x + raindrop.velocity.x)
+    newY =
+      resetToBeforeView(raindrop.y + raindrop.velocity.y)
+  in
+    (newX, newY)
+
+
+updateDropPosition: Drop -> Drop
+updateDropPosition raindrop =
+  let
+    (nX, nY) = addVelocity raindrop
+
+  in
+    { x = nX, y = nY, length = raindrop.length, velocity = raindrop.velocity }
+
 
 update: Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -54,25 +119,30 @@ update msg model =
     Reset ->
       init
     Tick newTime ->
-      ( { x = (model.x + model.velocity.x), y = (model.y + model.velocity.y), length = model.length, velocity = model.velocity }, Cmd.none)
+      ( List.map updateDropPosition model, (generateDropMessage (List.length model)))
+    GenerateDrop drop ->
+      (model ++ [drop], Cmd.none)
+
 
 
 -- View
+drawRain: Drop -> Svg.Svg Msg
+drawRain raindrop =
+  line [x1 (toString(raindrop.x)), y1 (toString(raindrop.y)), x2 (toString(raindrop.x + (raindrop.length * raindrop.velocity.x))), y2 (toString(raindrop.y + (raindrop.length * raindrop.velocity.y))), stroke purpleColor, strokeWidth "3" ] []
+
+
 view: Model -> Html Msg
 view model =
   let
-    convertCoord n =
-      let
-        offset =
-          10
-      in
-        (toString(offset + n))
+    boxWidth =
+      (toString(svgSize.width))
+    boxHeight =
+      (toString(svgSize.height))
   in
     div [] [
-      svg [ width "400", height "400", viewBox "0 0 400 400" ]
-        [ rect [x (convertCoord 10), y (convertCoord 10), width "400", height "400", fill backgroundColor] []
-        , line [x1 (convertCoord model.x), y1 (convertCoord model.y), x2 (convertCoord (model.x + (model.length * model.velocity.x))), y2 (convertCoord (model.y + (model.length * model.velocity.y))), stroke purpleColor, strokeWidth "3" ] []
-        ]
+      svg [ width boxWidth, height boxHeight, viewBox "0 0 400 400" ]
+        ([ rect [x "0", y "0", width boxWidth, height boxHeight, fill backgroundColor] []
+        ] ++ (List.map drawRain model))
     ]
 
 -- Subscriptions
